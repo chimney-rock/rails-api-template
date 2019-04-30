@@ -9,7 +9,7 @@ class GraphqlController < ActionController::API
     operation_name = params[:operationName]
     context = {}
 
-    render json: Schema.execute(query, variables: variables, context: context, operation_name: operation_name)
+    render json: ApiSchema.execute(query, variables: variables, context: context, operation_name: operation_name)
   rescue => err
     raise err unless Rails.env.development?
     handle_error_in_development(err)
