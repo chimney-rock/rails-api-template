@@ -15,16 +15,20 @@ def apply_template!
   ####################################################################
   remove_file('app/channels')
   remove_file('app/mailers')
-  remove_file('app/jobs')
   remove_file('app/views')
+  remove_file('app/jobs')
+
+  copy_from_github('docker/scripts/base_packages.sh')
+  copy_from_github('docker/scripts/build_unit.sh')
+  copy_from_github('docker/unit/conf.json')
+  copy_from_github('docker-compose.yml')
+  copy_from_github('Dockerfile')
 
   copy_from_github('app/controllers/application_controller.rb')
   copy_from_github('app/controllers/graphql_controller.rb')
   copy_from_github('app/graphql/api_schema.rb')
   copy_from_github('lib/tasks/graphql.rake')
-  copy_from_github('docker-compose.yml')
   copy_from_github('.editorconfig')
-  copy_from_github('Dockerfile')
 
   comment_lines('config/application.rb', /active_job/)
   comment_lines('config/application.rb', /active_storage/)
@@ -54,9 +58,8 @@ def apply_template!
   route("root to: 'graphql#index'")
   route("post '/graphql', to: 'graphql#execute'")
 
-  # generate('annotate:install')
-
   run('bundle install')
+  run('docker-compose build')
 
   git(:init)
   git(add: '.')

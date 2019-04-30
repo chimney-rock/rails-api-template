@@ -1,0 +1,31 @@
+{
+  "settings": {
+    "http": {
+      "header_read_timeout": 30,
+      "body_read_timeout": 30,
+      "send_timeout": 30,
+      "idle_timeout": 180,
+      "max_body_size": 8388608
+    }
+  },
+  "listeners": {
+    "*:3000": {
+      "pass": "applications/company_service"
+    }
+  },
+  "applications": {
+    "company_service": {
+      "type": "ruby",
+      "processes": {
+        "max": 20,
+        "spare": 5,
+        "idle_timeout": 20
+      },
+      "user": "app",
+      "group": "app",
+      "working_directory": "/app/current",
+      "script": "/app/current/config.ru"
+    }
+  },
+  "access_log": "/app/current/log/access.log"
+}
