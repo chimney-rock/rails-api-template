@@ -24,16 +24,13 @@ def apply_template!
   end
 
   ####################################################################
-  # Cleanup files & directories that are unused for APIs
+  # File stuff
   ####################################################################
   remove_file('app/channels')
   remove_file('app/mailers')
   remove_file('app/jobs')
   remove_file('app/views')
-
-  ####################################################################
-  # Copy template files
-  ####################################################################
+  
   copy_from_github('app/controllers/application_controller.rb')
   copy_from_github('app/controllers/graphql_controller.rb')
   copy_from_github('app/graphql/api_schema.rb')
@@ -57,7 +54,7 @@ def apply_template!
 
   template('config/database.yml.tt', force: true)
 
-  template('env.tt')
+  template('.env.tt')
   append_to_file('.gitignore', '.env')
   append_to_file('.gitignore', '/vendor/bundle/*')
 
@@ -100,13 +97,13 @@ end
 
 def assert_valid_options!
   valid_options = {
-    skip_gemfile: false,
-    skip_bundle: false,
+    skip_gemfile:      false,
+    skip_bundle:       false,
     skip_action_cable: true,
-    skip_sprockets: true,
-    skip_javascript: true,
-    skip_turbolinks: true,
-    skip_test: true
+    skip_sprockets:    true,
+    skip_javascript:   true,
+    skip_turbolinks:   true,
+    skip_test:         true
   }
 
   valid_options.each do |key, expected|
