@@ -23,19 +23,19 @@ end
 
 git(:init)
 
-uses_db? = yes?('Does this API need a database connection?')
+needs_db? = yes?('Does this API need a database connection?')
 # uses_rabbitmq? = yes?('Will this API connect to RabbitMQ?')
 
 ####################################################################
 # Gems
 ####################################################################
 # gem 'sneakers', '~> 2.11' if uses_rabbitmq?
-gem 'pg', '~> 1.1' if uses_db?
+gem 'pg', '~> 1.1' if needs_db?
 gem 'graphql', '~> 1.9'
 
 gem 'annotate', '~> 2.7', group: :development
 gem_group :development, :test do
-  gem 'database_cleaner' if uses_db?
+  gem 'database_cleaner' if needs_db?
   gem 'factory_bot_rails'
   gem 'rspec-rails'
 end
@@ -59,8 +59,8 @@ copy_from_github('config/database.yml') if uses_db?
 copy_from_github('app/graphql/api_schema.rb')
 copy_from_github('lib/tasks/graphql.rake')
 copy_from_github('docker-compose.yml')
-copy_from_github('Dockerfile')
 copy_from_github('.editorconfig')
+copy_from_github('Dockerfile')
 
 # Copy base GraphQL types
 %w[base_enum base_field base_input_object base_interface base_object base_scalar base_union query_type uuid_type].each do |file|
@@ -70,7 +70,7 @@ end
 # Lines to add to the .env file
 environment_file = []
 
-if uses_db?
+if needs_db?
   db_host     = prompt('Database host? [localhost]',    default: 'localhost')
   db_user     = prompt('Database username? [postgres]', default: 'postgres') 
   db_password = prompt('Database password? [postgres]', default: 'postgres')
@@ -94,9 +94,7 @@ application('config.api_only = true')
 route("root to: 'graphql#index'")
 route("post '/graphql', to: 'graphql#execute'")
 
-
 # generate('annotate:install')
-
 
 git(add: '.')
 git(commit: "-a -m 'Initial commit'")
