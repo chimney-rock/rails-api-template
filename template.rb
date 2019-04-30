@@ -5,7 +5,8 @@ require 'awesome_print'
 def apply_template!
   assert_valid_options!
   add_template_to_source_path
-  git(:init)
+
+  template('Gemfile.tt', force: true)
 
   # uses_rabbitmq = yes?('Will this API connect to RabbitMQ?')
 
@@ -30,7 +31,7 @@ def apply_template!
   remove_file('app/mailers')
   remove_file('app/jobs')
   remove_file('app/views')
-  
+
   copy_from_github('app/controllers/application_controller.rb')
   copy_from_github('app/controllers/graphql_controller.rb')
   copy_from_github('app/graphql/api_schema.rb')
@@ -71,6 +72,7 @@ def apply_template!
 
   run('bundle install')
 
+  git(:init)
   git(add: '.')
   git(commit: "-a -m 'Initial commit'")
 end
