@@ -6,7 +6,7 @@
 # @return [Object]
 def prompt(question, default: nil)
   answer = ask(question) 
-  answer.empty? ? default_answer : answer
+  answer.empty? ? default : answer
 end
 
 # Copies a single file from the github repository.
@@ -15,7 +15,7 @@ end
 # @param [String] destination File destination.
 def copy_from_github(filename, destination: filename)
   source = "https://raw.githubusercontent.com/chimney-rock/rails-api-template/master/#{filename}"
-  remove_file(destination)
+  remove_file(destination) if File.exists?(destination)
   get(source, destination)
 rescue OpenURI::HTTPError
   puts "ERROR: Unable to obtain file `#{source}`"
