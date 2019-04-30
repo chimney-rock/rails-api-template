@@ -1,3 +1,105 @@
+require 'fileutils'
+require 'shellwords'
+
+def apply_template!
+  add_template_repository_to_source_path
+  git(:init)
+
+  needs_db = true
+
+  # uses_rabbitmq = yes?('Will this API connect to RabbitMQ?')
+
+  ####################################################################
+  # Gems
+  ####################################################################
+  # gem 'sneakers', '~> 2.11' if uses_rabbitmq?
+  gem 'pg', '~> 1.1' if needs_db
+  gem 'graphql', '~> 1.9'
+
+  gem 'annotate', '~> 2.7', group: :development
+  gem_group :development, :test do
+    gem 'database_cleaner' if needs_db
+    gem 'factory_bot_rails'
+    gem 'rspec-rails'
+  end
+
+  ####################################################################
+  # Cleanup files & directories that are unused for APIs
+  ####################################################################
+  remove_file('app/channels')
+  remove_file('app/mailers')
+  remove_file('app/jobs')
+  remove_file('app/views')
+
+  ####################################################################
+  # Copy template files
+  ####################################################################
+  copy_from_github('app/controllers/application_controller.rb')
+  copy_from_github('app/controllers/graphql_controller.rb')
+  copy_from_github('app/graphql/api_schema.rb')
+  copy_from_github('lib/tasks/graphql.rake')
+  copy_from_github('docker-compose.yml')
+  copy_from_github('.editorconfig')
+  copy_from_github('Dockerfile')
+
+  # Copy base GraphQL types
+  %w(base_enum base_field base_input_object base_interface base_object base_scalar base_union query_type uuid_type).each do |file|
+    copy_from_github("app/graphql/types/#{file}.rb")
+  end
+
+  # Lines to add to the .env file
+  environment_file = []
+
+  if needs_db
+    db_host     = prompt('Database host? [localhost]',    default: 'localhost')
+    db_user     = prompt('Database username? [postgres]', default: 'postgres') 
+    db_password = prompt('Database password? [postgres]', default: 'postgres')
+
+    copy_from_github('config/database.yml')
+    template('config/database.yml')
+  end
+
+  file('.env', environment_file.join("\n"))
+  append_to_file('.gitignore', '.env')
+  append_to_file('.gitignore', '/vendor/bundle/*')
+
+  application('config.active_record.default_timezone = :utc')
+  application('config.active_record.schema_format = :sql')
+  application('config.api_only = true')
+
+  ####################################################################
+  # Routes
+  ####################################################################
+  route("root to: 'graphql#index'")
+  route("post '/graphql', to: 'graphql#execute'")
+
+  # generate('annotate:install')
+
+  run('bundle install')
+
+  git(add: '.')
+  git(commit: "-a -m 'Initial commit'")
+end
+
+
+def add_template_repository_to_source_path
+  if __FILE__ =~ %r{\Ahttps?://}
+    require 'tmpdir'
+    source_paths.unshift(tempdir = Dir.mktmpdir('rails-api-template-'))
+    at_exit { FileUtils.remove_entry(tempdir) }
+    git clone: [
+      '--quiet',
+      'https://github.com/chimney-rock/rails-api-template.git',
+      tempdir
+    ].map(&:shellescape).join(" ")
+
+    if (branch = __FILE__[%r{rails-api-template/(.+)/template.rb}, 1])
+      Dir.chdir(tempdir) { git checkout: branch }
+    end
+  else
+    source_paths.unshift(File.dirname(__FILE__))
+  end
+end
 
 # Prompts the user with a question & default.
 #
@@ -21,79 +123,4 @@ rescue OpenURI::HTTPError
   puts "ERROR: Unable to obtain file `#{source}`"
 end
 
-git(:init)
-
-needs_db = true
-
-# uses_rabbitmq = yes?('Will this API connect to RabbitMQ?')
-
-####################################################################
-# Gems
-####################################################################
-# gem 'sneakers', '~> 2.11' if uses_rabbitmq?
-gem 'pg', '~> 1.1' if needs_db
-gem 'graphql', '~> 1.9'
-
-gem 'annotate', '~> 2.7', group: :development
-gem_group :development, :test do
-  gem 'database_cleaner' if needs_db
-  gem 'factory_bot_rails'
-  gem 'rspec-rails'
-end
-
-####################################################################
-# Cleanup files & directories that are unused for APIs
-####################################################################
-remove_file('app/channels')
-remove_file('app/mailers')
-remove_file('app/jobs')
-remove_file('app/views')
-
-####################################################################
-# Copy template files
-####################################################################
-copy_from_github('app/controllers/application_controller.rb')
-copy_from_github('app/controllers/graphql_controller.rb')
-copy_from_github('app/graphql/api_schema.rb')
-copy_from_github('lib/tasks/graphql.rake')
-copy_from_github('docker-compose.yml')
-copy_from_github('.editorconfig')
-copy_from_github('Dockerfile')
-
-# Copy base GraphQL types
-%w(base_enum base_field base_input_object base_interface base_object base_scalar base_union query_type uuid_type).each do |file|
-  copy_from_github("app/graphql/types/#{file}.rb")
-end
-
-# Lines to add to the .env file
-environment_file = []
-
-if needs_db
-  db_host     = prompt('Database host? [localhost]',    default: 'localhost')
-  db_user     = prompt('Database username? [postgres]', default: 'postgres') 
-  db_password = prompt('Database password? [postgres]', default: 'postgres')
-
-  copy_from_github('config/database.yml')
-  template('config/database.yml')
-end
-
-file('.env', environment_file.join("\n"))
-append_to_file('.gitignore', '.env')
-append_to_file('.gitignore', '/vendor/bundle/*')
-
-application('config.active_record.default_timezone = :utc')
-application('config.active_record.schema_format = :sql')
-application('config.api_only = true')
-
-####################################################################
-# Routes
-####################################################################
-route("root to: 'graphql#index'")
-route("post '/graphql', to: 'graphql#execute'")
-
-# generate('annotate:install')
-
-run('bundle install')
-
-git(add: '.')
-git(commit: "-a -m 'Initial commit'")
+apply_template!
