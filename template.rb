@@ -11,20 +11,6 @@ def apply_template!
   # uses_rabbitmq = yes?('Will this API connect to RabbitMQ?')
 
   ####################################################################
-  # Gems
-  ####################################################################
-  # gem 'sneakers', '~> 2.11' if uses_rabbitmq?
-  gem 'graphql', '~> 1.9'
-
-  gem 'annotate', '~> 2.7', group: :development
-  gem_group :development, :test do
-    gem 'database_cleaner'
-    gem 'factory_bot_rails'
-    gem 'dotenv-rails'
-    gem 'rspec-rails'
-  end
-
-  ####################################################################
   # File stuff
   ####################################################################
   remove_file('app/channels')

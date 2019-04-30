@@ -2,7 +2,7 @@
 
 ```shell
 rails new delete_me \
-  -m ~/Projects/chimney_rock/rails-api-template/template.rb \
+  -m https://raw.githubusercontent.com/chimney-rock/rails-api-template/master/template.rb \
   -d postgresql \
   --skip-webpack-install \
   --skip-action-cable \
