@@ -1,11 +1,11 @@
 require 'fileutils'
 require 'shellwords'
+require 'awesome_print'
 
 def apply_template!
-  add_template_repository_to_source_path
+  assert_valid_options!
+  add_template_to_source_path
   git(:init)
-
-  needs_db = true
 
   # uses_rabbitmq = yes?('Will this API connect to RabbitMQ?')
 
@@ -13,13 +13,13 @@ def apply_template!
   # Gems
   ####################################################################
   # gem 'sneakers', '~> 2.11' if uses_rabbitmq?
-  gem 'pg', '~> 1.1' if needs_db
   gem 'graphql', '~> 1.9'
 
   gem 'annotate', '~> 2.7', group: :development
   gem_group :development, :test do
-    gem 'database_cleaner' if needs_db
+    gem 'database_cleaner'
     gem 'factory_bot_rails'
+    gem 'dotenv-rails'
     gem 'rspec-rails'
   end
 
@@ -42,30 +42,27 @@ def apply_template!
   copy_from_github('.editorconfig')
   copy_from_github('Dockerfile')
 
+  comment_lines('config/application.rb', /active_job/)
+  comment_lines('config/application.rb', /active_storage/)
+  comment_lines('config/application.rb', /action_mailbox/)
+  comment_lines('config/application.rb', /action_mailer/)
+  comment_lines('config/application.rb', /action_view/)
+  comment_lines('config/application.rb', /action_cable/)
+  comment_lines('config/application.rb', /action_text/)
+
   # Copy base GraphQL types
   %w(base_enum base_field base_input_object base_interface base_object base_scalar base_union query_type uuid_type).each do |file|
     copy_from_github("app/graphql/types/#{file}.rb")
   end
 
-  # Lines to add to the .env file
-  environment_file = []
+  template('config/database.yml.tt', force: true)
 
-  if needs_db
-    db_host     = prompt('Database host? [localhost]',    default: 'localhost')
-    db_user     = prompt('Database username? [postgres]', default: 'postgres') 
-    db_password = prompt('Database password? [postgres]', default: 'postgres')
-
-    copy_from_github('config/database.yml')
-    template('config/database.yml')
-  end
-
-  file('.env', environment_file.join("\n"))
+  template('env.tt')
   append_to_file('.gitignore', '.env')
   append_to_file('.gitignore', '/vendor/bundle/*')
 
   application('config.active_record.default_timezone = :utc')
   application('config.active_record.schema_format = :sql')
-  application('config.api_only = true')
 
   ####################################################################
   # Routes
@@ -82,7 +79,7 @@ def apply_template!
 end
 
 
-def add_template_repository_to_source_path
+def add_template_to_source_path
   if __FILE__ =~ %r{\Ahttps?://}
     require 'tmpdir'
     source_paths.unshift(tempdir = Dir.mktmpdir('rails-api-template-'))
@@ -98,6 +95,26 @@ def add_template_repository_to_source_path
     end
   else
     source_paths.unshift(File.dirname(__FILE__))
+  end
+end
+
+def assert_valid_options!
+  valid_options = {
+    skip_gemfile: false,
+    skip_bundle: false,
+    skip_action_cable: true,
+    skip_sprockets: true,
+    skip_javascript: true,
+    skip_turbolinks: true,
+    skip_test: true
+  }
+
+  valid_options.each do |key, expected|
+    next unless options.key?(key)
+    actual = options[key]
+    unless actual == expected
+      fail Rails::Generators::Error, "Unsupported option: #{key}=#{actual}"
+    end
   end
 end
 
